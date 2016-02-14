@@ -48,20 +48,43 @@ class Element(etree.ElementBase):
             thing = next_thing
         thing.getparent().remove(thing)
 
-    def replace(self, text):
+    def replace(self, text, structure=False):
         parent = self.getparent()
-        if not parent:
+        if parent is None:
             return
 
-        if isinstance(text, etree._Element):
+        if isinstance(text, (list, tuple)):
+            parent = self.getparent()
+            if parent and parent.text and parent.getprevious():
+                parent.getprevious().tail += parent.text
+                parent.text = None
+            for node in text:
+                parent.insert(parent.index(self), node)
+            self.getprevious().tail += self.tail
+            parent.remove(self)
+        elif isinstance(text, etree._Element):
+            if parent.text:
+                parent.getprevious().tail += parent.text
+                parent.text = None
+            text.tail += self.tail
             parent.replace(self, text)
+        elif structure:
+            xml = etree.XML("<dispose>{}</dispose>".format(text))
+            self.replace(list(xml) or xml.text)
         else:
             self.getprevious().tail += text
             parent.remove(self)
 
-    def content(self, text):
-        if isinstance(text, etree._Element):
+    def content(self, text, structure=False):
+        if isinstance(text, (list, tuple)):
+            self.text = None
+            self[:] = list(text)
+        elif isinstance(text, etree._Element):
+            self.text = None
             self[:] = [text]
+        elif structure:
+            xml = etree.XML("<dispose>{}</dispose>".format(text))
+            self.replace(list(xml) or xml.text)
         else:
             self[:] = []
             self.text = text
@@ -79,6 +102,15 @@ class Element(etree.ElementBase):
             else:
                 missing.add(k)
         return missing
+
+    def parentindex(self):
+        parent = self.getparent()
+        return parent.index(self) if parent else None
+
+    def deparent(self):
+        parent = self.getparent()
+        if parent:
+            parent.remove(self)
 
     def _clone_without_own_ns(self):
         new = self.clone()
@@ -101,7 +133,7 @@ class Element(etree.ElementBase):
     def write_xml(self, file, encoding=None, doctype=None, fragment=False,
                   declaration=True, pipeline=False, _kwargs={"method": "xml"}):
         kwargs = {k: v for k, v in _kwargs.items()}
-        kwargs.update(xml_declaration=declaration)
+        kwargs.update(xml_declaration=declaration, encoding=encoding)
         if doctype:
             kwargs.update(doctype=self._get_doctype(doctype))
         if fragment:
@@ -114,9 +146,12 @@ class Element(etree.ElementBase):
         else:
             return etree.tostring(doc, **kwargs)
 
-    def write_xhtml(self, file, encoding=None, declaration=False,
-                    pipeline=False):
-        return self.write_xml(file, encoding=encoding, doctype=_xhtml_doctype)
+    def write_xhtml(self, file, encoding=None, doctype=_xhtml_doctype,
+                    declaration=False, pipeline=False):
+        if not doctype[1].startswith("-//W3C//DTD XHTML"):
+            # libxml handles xhtml by doctype-sniffing
+            raise ValueError("Invalid doctype for XHTML")
+        return self.write_xml(file, encoding=encoding, doctype=doctype)
 
     def write_html(self, file, encoding=None, doctype=_html_doctype,
                    fragment=False):
@@ -124,6 +159,15 @@ class Element(etree.ElementBase):
             file, encoding=encoding, doctype=doctype, fragment=fragment,
             _kwargs={"method": "html"}
         )
+
+    def write_xmlstring(self, *args, **kwargs):
+        return self.write_xml(None, *args, **kwargs)
+
+    def write_xhtmlstring(self, *args, **kwargs):
+        return self.write_xhtml(None, *args, **kwargs)
+
+    def write_htmlstring(self, *args, **kwargs):
+        return self.write_html(None, *args, **kwargs)
 
 
 def _parser(parser_cls=etree.XMLParser):
@@ -142,14 +186,14 @@ def _check_tree(tree):
         seen.add(id)
 
 
-def parse_xml(file):
-    t = etree.parse(xml, _parser())
+def parse_xml(xml):
+    t = etree.parse(xml, _parser()).getroot()
     _check_tree(t)
     return t
 
 
 def parse_xmlstring(xml):
-    t = etree.fromstring(xml, _parser())
+    t = etree.fromstring(xml, _parser()).getroot()
     _check_tree(t)
     return t
 
@@ -161,15 +205,15 @@ def _fix_html(tree):
             ele.set(qn, ele.attrib.pop("meld:id"))
 
 
-def parse_html(file):
-    t = etree.parse(xml, _parser(etree.HTMLParser))
+def parse_html(html):
+    t = etree.parse(html, _parser(etree.HTMLParser)).getroot()
     _fix_html(t)
     _check_tree(t)
     return t
 
 
 def parse_htmlstring(html):
-    t = etree.fromstring(html, _parser(etree.HTMLParser))
+    t = etree.fromstring(html, _parser(etree.HTMLParser)).getroot()
     _fix_html(t)
     _check_tree(t)
     return t
