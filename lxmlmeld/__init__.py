@@ -55,7 +55,8 @@ class Element(etree.ElementBase):
 
         if isinstance(text, (list, tuple)):
             parent = self.getparent()
-            if parent and parent.text and parent.getprevious():
+            if parent is not None and parent.text and \
+                    parent.getprevious() is not None:
                 parent.getprevious().tail += parent.text
                 parent.text = None
             for node in text:
