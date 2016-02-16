@@ -90,7 +90,7 @@ class Element(etree.ElementBase):
             self[:] = [text]
         elif structure:
             xml = etree.XML("<dispose>{}</dispose>".format(text))
-            self.replace(list(xml) or xml.text)
+            self.content(list(xml) or xml.text)
         else:
             self[:] = []
             self.text = text
