@@ -51,7 +51,7 @@ class Element(etree.ElementBase):
             thing.addnext(next_thing)
             thing = next_thing
         thing.getparent().remove(thing)
-        if tail and prev_thing:
+        if tail and prev_thing is not None:
             prev_thing.tail = tail
 
     def replace_child(self, old_element, new_element):
@@ -115,7 +115,7 @@ class Element(etree.ElementBase):
 
     def deparent(self):
         parent = self.getparent()
-        if parent:
+        if parent is not None:
             parent.remove(self)
 
     def _clone_without_own_ns(self):
