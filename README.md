@@ -14,7 +14,7 @@ from-the-ground-up rewrite based on the Meld3 documentation and test suite.
  - replace() follows the meld3 syntax; the lxml call of the same name is
    renamed `replace_child()`
  - The property `parent` doesn't exist; use `getparent()`
- - You can pass lxml Elements or listis of Elements to `replace()` and
+ - You can pass lxml Elements or lists of Elements to `replace()` and
    `content()`
  - When using `structure=True` the content must be parsable as XML
  - libxml2 uses doctype sniffing for XHTML, so `write_xml()` and
