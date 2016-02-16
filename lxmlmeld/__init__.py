@@ -41,12 +41,21 @@ class Element(etree.ElementBase):
 
     def repeat(self, iterable, childname=None):
         thing = self.findmeld(childname) if childname else self
+        tail = thing.tail
+        thing.tail = None
+        prev_thing = None
         for data in iterable:
             next_thing = thing.clone()
+            prev_thing = thing
             yield thing, data
             thing.addnext(next_thing)
             thing = next_thing
         thing.getparent().remove(thing)
+        if tail and prev_thing:
+            prev_thing.tail = tail
+
+    def replace_child(self, old_element, new_element):
+        super(Element, self).replace(old_element, new_element)
 
     def replace(self, text, structure=False):
         parent = self.getparent()
@@ -54,26 +63,22 @@ class Element(etree.ElementBase):
             return
 
         if isinstance(text, (list, tuple)):
-            parent = self.getparent()
-            if parent is not None and parent.text and \
-                    parent.getprevious() is not None:
-                parent.getprevious().tail += parent.text
-                parent.text = None
             for node in text:
-                parent.insert(parent.index(self), node)
-            self.getprevious().tail += self.tail
+                parent.insert(self.parentindex(), node)
+            if self.tail:
+                prev = self.getprevious()
+                prev.tail = (prev.tail or '') + self.tail
             parent.remove(self)
         elif isinstance(text, etree._Element):
-            if parent.text:
-                parent.getprevious().tail += parent.text
-                parent.text = None
-            text.tail += self.tail
-            parent.replace(self, text)
+            if self.tail:
+                text.tail = (text.tail or '') + self.tail
+            parent.replace_child(self, text)
         elif structure:
             xml = etree.XML("<dispose>{}</dispose>".format(text))
             self.replace(list(xml) or xml.text)
         else:
-            self.getprevious().tail += text
+            prev = self.getprevious()
+            prev.tail = (prev.tail or '') + text
             parent.remove(self)
 
     def content(self, text, structure=False):
@@ -106,7 +111,7 @@ class Element(etree.ElementBase):
 
     def parentindex(self):
         parent = self.getparent()
-        return parent.index(self) if parent else None
+        return parent.index(self) if parent is not None else None
 
     def deparent(self):
         parent = self.getparent()
