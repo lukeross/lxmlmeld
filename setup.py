@@ -20,5 +20,6 @@ setup(
         "Operating System :: POSIX",
         "Programming Language :: Python :: 3",
         "Topic :: Text Processing :: Markup :: HTML"
-    ]
+    ],
+    keywords="meld3 pymeld"
 )
