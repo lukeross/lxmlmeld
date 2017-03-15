@@ -7,9 +7,18 @@ from lxmlmeld import parse_xml, parse_xmlstring
 class XMLTests(TestCase):
     def as_expected(self, handler):
         scenarios = (
-            ("<xml />", "<?xml version='1.0' encoding='ASCII'?>\n<xml/>"),
-            ("<?xml version='1.0' ?><xml />", "<?xml version='1.0' encoding='ASCII'?>\n<xml/>"),
-            ("<xml><a /><b /></xml>", "<?xml version='1.0' encoding='ASCII'?>\n<xml><a/><b/></xml>"),
+            (
+                "<xml />",
+                "<?xml version='1.0' encoding='ASCII'?>\n<xml/>"
+            ),
+            (
+                "<?xml version='1.0' ?><xml />",
+                "<?xml version='1.0' encoding='ASCII'?>\n<xml/>"
+            ),
+            (
+                "<xml><a /><b /></xml>",
+                "<?xml version='1.0' encoding='ASCII'?>\n<xml><a/><b/></xml>"
+            ),
         )
         for ip, op in scenarios:
             doc = handler(ip)
