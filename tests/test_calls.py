@@ -1,3 +1,5 @@
+from copy import deepcopy
+from lxml.builder import E
 from unittest import TestCase
 
 from lxmlmeld import parse_xmlstring
@@ -31,7 +33,7 @@ class ReplaceTests(TestCase):
         )
         for ip, op in docs:
             doc = parse_xmlstring(ip)
-            doc.findmeld("r").replace(arg, **kwargs)
+            doc.findmeld("r").replace(deepcopy(arg), **kwargs)
             self.assertEqual(
                 doc.write_xmlstring(),
                 op.format(expected_in_output).encode("ascii"),
@@ -46,4 +48,13 @@ class ReplaceTests(TestCase):
                          '<hello word="world"/><a/>', structure=True)
 
     def test_replace_with_nodes(self):
-        pass
+        replacement = E("awesome")
+        replacement.tail = "!"
+        self.as_expected(replacement, "<awesome/>!")
+
+    def test_replace_with_nodelist(self):
+        replacements = [E("so", {"completely": "yes"}), E("awesome")]
+        replacements[0].tail = "-"
+        replacements[1].tail = "!"
+        self.as_expected(replacements, '<so completely="yes"/>-<awesome/>!'
+        )

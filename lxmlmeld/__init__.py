@@ -84,11 +84,11 @@ class Element(etree.ElementBase):
                 parent.insert(self.parentindex(), node)
             if self.tail:
                 prev = self.getprevious()
-                prev.tail = (prev.tail or '') + self.tail
+                prev.tail = (prev.tail or "") + self.tail
             parent.remove(self)
         elif isinstance(text, etree._Element):
             if self.tail:
-                text.tail = (text.tail or '') + self.tail
+                text.tail = (text.tail or "") + self.tail
             parent.replace_child(self, text)
         elif structure:
             xml = etree.XML("<dispose>{}</dispose>".format(text))
