@@ -58,6 +58,23 @@ class Element(etree.ElementBase):
         super(Element, self).replace(old_element, new_element)
 
     def replace(self, text, structure=False):
+        """
+        Replace the element with argument given.
+
+        If the argument is text and structure is False (the default), argument
+        is treated as a plain-text string (and is escaped if required).
+
+        If the argument is text and structure is True, the argument is treated
+        as text containing some XML elements and inserted as part of the
+        document. The text needs to be parseable as XML.
+
+        If the argument is an lxml Element node it is used as the replacement.
+
+        If the argument is a list or tuple it is expected to be a list of
+        lxml Element nodes which will all be used as the replacement.
+
+        Returns nothing.
+        """
         parent = self.getparent()
         if parent is None:
             return
@@ -77,8 +94,16 @@ class Element(etree.ElementBase):
             xml = etree.XML("<dispose>{}</dispose>".format(text))
             self.replace(list(xml) or xml.text)
         else:
+            if self.tail:
+                text += self.tail
             prev = self.getprevious()
-            prev.tail = (prev.tail or '') + text
+            if prev is not None:
+                prev.tail = (prev.tail or '') + text
+            else:
+                if parent.text:
+                    parent.text += text
+                else:
+                    parent.text = text
             parent.remove(self)
 
     def content(self, text, structure=False):
@@ -193,18 +218,26 @@ def _check_tree(tree):
 
 
 def parse_xml(xml):
+    """
+    Parses XML from a file-like object. Returns the root element.
+    """
     t = etree.parse(xml, _parser()).getroot()
     _check_tree(t)
     return t
 
 
 def parse_xmlstring(xml):
-    t = etree.fromstring(xml, _parser()).getroot()
+    """
+    Parses a str or unicode of XML. Returns the root element.
+    """
+    t = etree.fromstring(xml, _parser())
     _check_tree(t)
     return t
 
 
 def _fix_html(tree):
+    # The HTML parser deliberately doesn't parse namespaces, so this phase
+    # moves the meld:id attributes into the correct namespace.
     qn = etree.QName(NS, "id").text
     for ele in tree.iter():
         if "meld:id" in ele.attrib:
@@ -219,7 +252,7 @@ def parse_html(html):
 
 
 def parse_htmlstring(html):
-    t = etree.fromstring(html, _parser(etree.HTMLParser)).getroot()
+    t = etree.fromstring(html, _parser(etree.HTMLParser))
     _fix_html(t)
     _check_tree(t)
     return t
