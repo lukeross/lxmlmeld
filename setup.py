@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
 
 setup(
     author_email="luke@lukeross.name",
@@ -9,9 +9,9 @@ setup(
     install_requires=["lxml"],
     license="BSD",
     name="lxmlmeld",
-    packages=["lxmlmeld"],
     url="https://github.com/lukeross/lxmlmeld",
-    version="0.2",
+    packages=["lxmlmeld"],
+    version="0.3",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Web Environment",

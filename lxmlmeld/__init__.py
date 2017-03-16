@@ -50,9 +50,19 @@ class Element(etree.ElementBase):
             yield thing, data
             thing.addnext(next_thing)
             thing = next_thing
+        if tail:
+            if prev_thing is not None:
+                prev_thing.tail = tail
+            elif thing.getprevious() is not None:
+                prev = thing.getprevious()
+                prev.tail = (prev.tail or "") + tail
+            elif thing.getparent() is not None:
+                parent = thing.getparent()
+                if parent.text:
+                    parent.text += tail
+                else:
+                    parent.text = tail
         thing.getparent().remove(thing)
-        if tail and prev_thing is not None:
-            prev_thing.tail = tail
 
     def replace_child(self, old_element, new_element):
         super(Element, self).replace(old_element, new_element)
@@ -162,7 +172,8 @@ class Element(etree.ElementBase):
         return '<!DOCTYPE {} PUBLIC "{}" "{}">'.format(*doctype)
 
     def write_xml(self, file, encoding=None, doctype=None, fragment=False,
-                  declaration=True, pipeline=False, _kwargs={"method": "xml"}):
+                  declaration=True, pipeline=False, _kwargs={"method": "xml"},
+                  _doc=None):
         kwargs = {k: v for k, v in _kwargs.items()}
         kwargs.update(xml_declaration=declaration, encoding=encoding)
         if doctype:
@@ -170,7 +181,13 @@ class Element(etree.ElementBase):
         if fragment:
             kwargs.update(doctype=None, xml_declaration=False)
 
-        doc = self if pipeline else self._clone_without_own_ns()
+        if _doc is not None:
+            doc = _doc
+        elif pipeline:
+            doc = self
+        else:
+            doc = self._clone_without_own_ns()
+
         if file:
             # ElementTree.write() doesn't support doctype
             file.write(etree.tostring(doc, **kwargs))
@@ -182,7 +199,23 @@ class Element(etree.ElementBase):
         if not doctype[1].startswith("-//W3C//DTD XHTML"):
             # libxml handles xhtml by doctype-sniffing
             raise ValueError("Invalid doctype for XHTML")
-        return self.write_xml(file, encoding=encoding, doctype=doctype)
+
+        if pipeline:
+            return self.write_xml(
+                file, encoding=encoding, doctype=doctype, pipeline=True,
+                declaration=declaration
+            )
+        else:
+            # cleaning up namespaces upsets lxml, need to re-parse :-(
+            intermediate = self.write_xml(
+                file, encoding=encoding, doctype=doctype,
+                declaration=declaration
+            )
+            intermediate = etree.fromstring(intermediate)
+            return self.write_xml(
+                file, encoding=encoding, doctype=doctype, pipeline=True,
+                declaration=declaration, _doc=intermediate
+            )
 
     def write_html(self, file, encoding=None, doctype=_html_doctype,
                    fragment=False):
