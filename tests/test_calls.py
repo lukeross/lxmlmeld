@@ -58,6 +58,14 @@ class ReplaceTests(TestCase):
         replacements[1].tail = "!"
         self.as_expected(replacements, '<so completely="yes"/>-<awesome/>!')
 
+    def test_replace_no_parent(self):
+        doc = parse_xmlstring("<a/>")
+        doc.replace("nooo")
+        self.assertEqual(
+            doc.write_xmlstring(declaration=False),
+            b'<a/>'
+        )
+
 
 class ContentTests(TestCase):
     def as_expected(self, arg, expected_in_output, **kwargs):
@@ -162,3 +170,127 @@ class RepeatTests(TestCase):
 
     def test_repeat_multi(self):
         self.as_expected(['q', 'z'], '<bar a="q"/><bar a="z"/>')
+
+
+class MeldFindingTests(TestCase):
+    def test_findmeld_exists(self):
+        doc = parse_xmlstring(
+            "<a xmlns:meld='http://www.plope.com/software/meld3'>"
+            "<b meld:id='q'/></a>"
+        )
+        found = doc.findmeld('q')
+        self.assertIsNotNone(found)
+        self.assertEqual(found.tag, 'b')
+        doc = parse_xmlstring(
+            "<a xmlns:meld='http://www.plope.com/software/meld3'"
+            " meld:id='q' />"
+        )
+        found = doc.findmeld('q')
+        self.assertIsNotNone(found)
+        self.assertEqual(found.tag, 'a')
+
+    def test_findmeld_missing(self):
+        doc = parse_xmlstring(
+            "<a xmlns:meld='http://www.plope.com/software/meld3'>"
+            "<b meld:id='q'/></a>"
+        )
+        found = doc.findmeld('z')
+        self.assertIsNone(found)
+        found = doc.findmeld('z', '')
+        self.assertEqual(found, '')
+
+    def test_meldid(self):
+        doc = parse_xmlstring(
+            "<a xmlns:meld='http://www.plope.com/software/meld3'>"
+            "<b meld:id='q'/></a>"
+        )
+        found = doc.findmeld('q')
+        self.assertEqual(found.meldid(), 'q')
+
+    def test_findmelds(self):
+        doc = parse_xmlstring(
+            "<a xmlns:meld='http://www.plope.com/software/meld3' "
+            "meld:id='z'><b meld:id='q'/></a>"
+        )
+        found = list(doc.findmelds())
+        self.assertEqual(len(found), 2)
+        self.assertEqual(set(['q', 'z']), set([
+            e.meldid() for e in found
+        ]))
+
+
+class FillMeldsTests(TestCase):
+    def test_fill_melds(self):
+        doc = parse_xmlstring(
+            "<a xmlns:meld='http://www.plope.com/software/meld3'> "
+            "<b meld:id='z'/><b meld:id='q'/></a>"
+        )
+        ret = doc.fillmelds(z='foo', q='bar', a='ohno')
+        self.assertEqual(
+            doc.write_xmlstring(declaration=False),
+            b'<a> <b>foo</b><b>bar</b></a>'
+        )
+        self.assertEqual(ret, ['a'])
+
+
+class AttributesTests(TestCase):
+    def test_fill_attributes(self):
+        doc = parse_xmlstring("<a/>")
+        doc.attributes(foo='q', bar='z')
+        op = doc.write_xmlstring(declaration=False)
+        self.assertTrue(op.startswith(b"<a "))
+        self.assertTrue(op.endswith(b"/>"))
+        self.assertIn(b'foo="q"', op)
+        self.assertIn(b'bar="z"', op)
+
+
+class CloneTests(TestCase):
+    def test_no_parent(self):
+        doc = parse_xmlstring(
+            "<a xmlns:meld='http://www.plope.com/software/meld3'>"
+            "<b meld:id='z'/></a>"
+        )
+        new = doc.findmeld('z').clone()
+        new.attributes(foo='bar')
+        self.assertEqual(
+            new.write_xmlstring(declaration=False),
+            b'<b foo="bar"/>'
+        )
+        self.assertEqual(
+            doc.write_xmlstring(declaration=False),
+            b'<a><b/></a>'
+        )
+
+    def test_with_parent(self):
+        doc = parse_xmlstring(
+            "<a xmlns:meld='http://www.plope.com/software/meld3'>"
+            "<b meld:id='z'/><c meld:id='q'/></a>"
+        )
+        new = doc.findmeld('z').clone(doc.findmeld('q'))
+        new.attributes(foo='bar')
+        self.assertEqual(
+            new.write_xmlstring(declaration=False),
+            b'<b foo="bar"/>'
+        )
+        self.assertEqual(
+            doc.write_xmlstring(declaration=False),
+            b'<a><b/><c><b foo="bar"/></c></a>'
+        )
+
+
+class DeparentTests(TestCase):
+    def test_deparent(self):
+        doc = parse_xmlstring(
+            "<a xmlns:meld='http://www.plope.com/software/meld3'>"
+            "<b meld:id='z'/></a>"
+        )
+        doc.findmeld('z').deparent()
+        self.assertEqual(
+            doc.write_xmlstring(declaration=False),
+            b'<a/>'
+        )
+        doc.deparent()  # no-op
+        self.assertEqual(
+            doc.write_xmlstring(declaration=False),
+            b'<a/>'
+        )

@@ -1,3 +1,4 @@
+import re
 from copy import deepcopy
 from lxml import etree
 
@@ -142,7 +143,7 @@ class Element(etree.ElementBase):
                 ele.content(v)
             else:
                 missing.add(k)
-        return missing
+        return list(missing)
 
     def parentindex(self):
         parent = self.getparent()
@@ -168,6 +169,8 @@ class Element(etree.ElementBase):
 
     @staticmethod
     def _get_doctype(doctype):
+        if not isinstance(doctype, (list, tuple)):
+            return doctype
         name, public, system = doctype
         return '<!DOCTYPE {} PUBLIC "{}" "{}">'.format(*doctype)
 
@@ -195,27 +198,39 @@ class Element(etree.ElementBase):
             return etree.tostring(doc, **kwargs)
 
     def write_xhtml(self, file, encoding=None, doctype=_xhtml_doctype,
-                    declaration=False, pipeline=False):
-        if not doctype[1].startswith("-//W3C//DTD XHTML"):
+                    fragment=False, declaration=False, pipeline=False):
+        doctype = self._get_doctype(doctype)
+        if not(doctype and "-//W3C//DTD XHTML" in doctype):
             # libxml handles xhtml by doctype-sniffing
             raise ValueError("Invalid doctype for XHTML")
 
+        if fragment:
+            declaration = False
+
         if pipeline:
-            return self.write_xml(
-                file, encoding=encoding, doctype=doctype, pipeline=True,
+            ret = self.write_xml(
+                None, encoding=encoding, doctype=doctype, pipeline=True,
                 declaration=declaration
             )
         else:
             # cleaning up namespaces upsets lxml, need to re-parse :-(
             intermediate = self.write_xml(
-                file, encoding=encoding, doctype=doctype,
+                None, encoding=encoding, doctype=doctype,
                 declaration=declaration
             )
             intermediate = etree.fromstring(intermediate)
-            return self.write_xml(
-                file, encoding=encoding, doctype=doctype, pipeline=True,
+            ret = self.write_xml(
+                None, encoding=encoding, doctype=doctype, pipeline=True,
                 declaration=declaration, _doc=intermediate
             )
+
+        if fragment:
+            ret = re.sub(rb'^.*?<!DOCTYPE.*?>\s+', b'', ret, re.S)
+
+        if file:
+            file.write(ret)
+        else:
+            return ret
 
     def write_html(self, file, encoding=None, doctype=_html_doctype,
                    fragment=False):
