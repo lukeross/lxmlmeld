@@ -263,8 +263,3 @@ class XHTMLTests(TestCase):
                 self.assertNotIn(absent, serialised_default)
             for txt in (serialised_on, serialised_off, serialised_default):
                 self.assertIn(b"<br /><p></p></body></html>", txt)
-
-        with self.assertRaises(ValueError):
-            doc.write_xhtmlstring(doctype='<!DOCTYPE note SYSTEM "Note.dtd">')
-        with self.assertRaises(ValueError):
-            doc.write_xhtmlstring(doctype=None)
