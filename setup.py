@@ -9,9 +9,9 @@ setup(
     install_requires=["lxml"],
     license="BSD",
     name="lxmlmeld",
-    url="https://github.com/lukeross/lxmlmeld",
+    url="http://lukeross.name/projects/lxmlmeld",
     packages=["lxmlmeld"],
-    version="0.3",
+    version="0.4",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Web Environment",
