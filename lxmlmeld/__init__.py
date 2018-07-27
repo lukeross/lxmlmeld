@@ -1,11 +1,10 @@
-import re
 from copy import deepcopy
 from lxml import etree
 
 NS = "http://www.plope.com/software/meld3"
 
 
-class _doctype_dict(object):
+class _DoctypeDict(object):
     def __init__(self, **kwargs):
         self._doctypes = kwargs
 
@@ -34,7 +33,7 @@ class _doctype_dict(object):
         return self._doctypes.get(*args, **kwargs)
 
 
-doctypes = _doctype_dict(
+doctypes = _DoctypeDict(
     html='<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" '
          '"http://www.w3.org/TR/html4/loose.dtd">',
     html_strict='<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" '
@@ -155,7 +154,7 @@ class Element(etree.ElementBase):
         """
         parent = self.getparent()
         if parent is None:
-            return
+            return None
 
         idx = self.parentindex()
         if isinstance(text, (list, tuple)):
@@ -259,6 +258,8 @@ class Element(etree.ElementBase):
         idx = self.parentindex()
         parent = self.getparent()
         if parent is not None:
+            if self.tail:
+                parent.text = (parent.text or "") + self.tail
             parent.remove(self)
         return idx
 
@@ -310,8 +311,9 @@ class Element(etree.ElementBase):
             try:
                 file.write(ret)
             except AttributeError:
-                with open(file, "eb") as fh:
+                with open(file, "wb") as fh:
                     fh.write(ret)
+            return None
         else:
             return ret
 

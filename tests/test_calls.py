@@ -1,3 +1,4 @@
+import unittest
 from copy import deepcopy
 from lxml.builder import E
 from unittest import TestCase
@@ -294,3 +295,23 @@ class DeparentTests(TestCase):
             doc.write_xmlstring(declaration=False),
             b'<a/>'
         )
+
+    def test_deparent_preserves_tail(self):
+        doc = parse_xmlstring(
+            "<a xmlns:meld='http://www.plope.com/software/meld3'>atail"
+            "<b meld:id='z'/>btail</a>"
+        )
+        doc.findmeld('z').deparent()
+        self.assertEqual(
+            doc.write_xmlstring(declaration=False),
+            b'<a>atailbtail</a>'
+        )
+        doc.deparent()  # no-op
+        self.assertEqual(
+            doc.write_xmlstring(declaration=False),
+            b'<a>atailbtail</a>'
+        )
+
+
+if __name__ == '__main__':
+    unittest.main()

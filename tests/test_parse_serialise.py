@@ -1,3 +1,4 @@
+import unittest
 from io import BytesIO, StringIO
 from unittest import TestCase
 
@@ -263,3 +264,7 @@ class XHTMLTests(TestCase):
                 self.assertNotIn(absent, serialised_default)
             for txt in (serialised_on, serialised_off, serialised_default):
                 self.assertIn(b"<br /><p></p></body></html>", txt)
+
+
+if __name__ == '__main__':
+    unittest.main()
