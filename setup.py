@@ -16,7 +16,7 @@ setup(
     name="lxmlmeld",
     url="http://lukeross.name/projects/lxmlmeld",
     packages=["lxmlmeld"],
-    version="0.6",
+    version="0.7",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Web Environment",

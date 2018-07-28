@@ -239,7 +239,7 @@ class Element(etree.ElementBase):
         """
         Alias for fillmelds.
         """
-        self.fillmelds(**kwargs)
+        return self.fillmelds(**kwargs)
 
     def parentindex(self):
         """
@@ -259,7 +259,11 @@ class Element(etree.ElementBase):
         parent = self.getparent()
         if parent is not None:
             if self.tail:
-                parent.text = (parent.text or "") + self.tail
+                if idx > 0:
+                    previous = self.getprevious()
+                    previous.tail = (previous.tail or "") + self.tail
+                else:
+                    parent.text = (parent.text or "") + self.tail
             parent.remove(self)
         return idx
 

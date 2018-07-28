@@ -298,18 +298,24 @@ class DeparentTests(TestCase):
 
     def test_deparent_preserves_tail(self):
         doc = parse_xmlstring(
-            "<a xmlns:meld='http://www.plope.com/software/meld3'>atail"
-            "<b meld:id='z'/>btail</a>"
+            "<a xmlns:meld='http://www.plope.com/software/meld3'>"
+            "<e/><f>ftail<b meld:id='z'/>btail</f></a>"
         )
         doc.findmeld('z').deparent()
         self.assertEqual(
             doc.write_xmlstring(declaration=False),
-            b'<a>atailbtail</a>'
+            b'<a><e/><f>ftailbtail</f></a>'
         )
-        doc.deparent()  # no-op
+
+    def test_deparent_with_siblings(self):
+        doc = parse_xmlstring(
+            "<a xmlns:meld='http://www.plope.com/software/meld3'>atail"
+            "<c/>ctail<b meld:id='z'/>btail<d/>dtail</a>"
+        )
+        doc.findmeld('z').deparent()
         self.assertEqual(
             doc.write_xmlstring(declaration=False),
-            b'<a>atailbtail</a>'
+            b'<a>atail<c/>ctailbtail<d/>dtail</a>'
         )
 
 
