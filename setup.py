@@ -14,7 +14,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/x-rst",
     name="lxmlmeld",
-    url="http://lukeross.name/projects/lxmlmeld",
+    url="https://github.com/lukeross/lxmlmeld",
     packages=["lxmlmeld"],
     version="0.7",
     classifiers=[
